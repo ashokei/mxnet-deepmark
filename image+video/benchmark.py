@@ -80,8 +80,12 @@ def benchmark(mod, dry_run=10, iterations=10):
     return format(mod._exec_group.batch_size / ((time.time() - tic) / iterations), '.2f')
 
 
-syms = {'mnist': (mx.sym.load('mnist.json'), [
-                  ('data', (64, 1, 28, 28))], [('softmax_label', (64,))])}
+syms = {
+    'mnist': (mx.sym.load('mnist.json'), [
+        ('data', (64, 1, 28, 28))], [('softmax_label', (64,))]),
+    'sockeye': (mx.sym.load('sockeye.json'), [('source', (64, 60)), ('target', (
+        64, 60))], [('target_label', (64, 60))])
+}
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
