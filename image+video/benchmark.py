@@ -48,7 +48,7 @@ def get_module(ctx, sym, provide_data, provide_label, batch_size=None, kvstore=N
     return mod
 
 
-def benchmark(mod, dry_run=10, iterations=20):
+def benchmark(mod, dry_run=10, iterations=10):
     if len(mod._context) == 1:
         ctx = mod._context[0]
     else:
@@ -73,11 +73,11 @@ def benchmark(mod, dry_run=10, iterations=20):
     for i in range(iterations):
         mod.forward(batch, is_train=True)
         mod.backward()
-        mod.update()
         for output in mod.get_outputs(merge_multi_context=False)[0]:
             output.wait_to_read()
+        mod.update()
 
-    return (time.time() - tic) * 1000.0 / iterations
+    return format(mod._exec_group.batch_size / ((time.time() - tic) / iterations), '.2f')
 
 
 syms = {'mnist': (mx.sym.load('mnist.json'), [
@@ -107,4 +107,4 @@ if __name__ == '__main__':
     ctx = [mx.cpu()]
     mod = get_module(ctx, sym, provide_data, provide_label,
                      kvstore=args.kv_store, batch_size=args.batch_size)
-    print(benchmark(mod))
+    print(benchmark(mod), " samples/sec")
