@@ -2,4 +2,6 @@
 
 [Deepmark](https://github.com/DeepMark/deepmark) on MXNet.
 
-*Feb 16, 2017, Note:* We are not maintaining this repo anymore.
+*Feb 16, 2017, Note:* Upstream stopped maintaining this repo.
+
+This forked repo adds CPU specific changes, and new models for testing.
