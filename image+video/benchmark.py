@@ -98,7 +98,7 @@ syms = {
     'resnet-50': (mx.sym.load('resnet-50.json'), [
         ('data', (64, 3, 224, 224))], [('softmax_label', (64,))]),
     'ssd-vgg16': (mx.sym.load('ssd-vgg16.json'), [
-        ('data', (64, 3, 300, 300))], [('label', (64,))]),
+        ('data', (64, 3, 300, 300))], [('label', (64, 21, 6))]),
     'sockeye': (mx.sym.load('sockeye.json'), [('source', (64, 60)), ('target', (
         64, 60))], [('target_label', (64, 60))])
 }
@@ -108,7 +108,7 @@ if __name__ == '__main__':
         description='Benchmark MXNet performance.')
     parser.add_argument('--network', type=str, default='mnist',
                         help='Network to run. Should be one of alexnet|vgg|resnet|inceptionv3|c3d')
-    parser.add_argument('--gpus', type=str, default='0',
+    parser.add_argument('--gpus', type=str, default=None,
                         help='The gpus to run on. Multiple gpus should be separated by ,')
     parser.add_argument('--batch-size', type=int, default=None,
                         help='Optionally override the default batch size')
@@ -128,10 +128,14 @@ if __name__ == '__main__':
         net = importlib.import_module(args.network)
         sym, provide_data, provide_label = net.get_symbol()
     ctx = [mx.cpu()]
-    batches = [args.batch_size] if args.batch_size!=None else [1,2,4,8,16,32,64,128,256]
+    if args.gpus is not None:
+        ctx = [mx.gpu(int(i)) for i in args.gpus.strip().split(',')]
+    batches = [args.batch_size] if args.batch_size != None else [
+        1, 2, 4, 8, 16, 32, 64, 128, 256]
     for batch in batches:
         mod = get_module(ctx, sym, provide_data, provide_label,
                          kvstore=args.kv_store, batch_size=batch, is_train=args.is_train)
         score = benchmark(mod, iterations=args.iterations,
-                        is_train=args.is_train)
-        print("network:"+args.network+", type:"+("training" if args.is_train else "inference")+", batch_size:"+str(mod._exec_group.batch_size)+", score:"+str(score))
+                          is_train=args.is_train)
+        print("network:" + args.network + ", type:" + ("training" if args.is_train else "inference") +
+              ", batch_size:" + str(mod._exec_group.batch_size) + ", score:" + str(score))
