@@ -38,17 +38,34 @@ def get_module(ctx, sym, provide_data, provide_label, batch_size=None, kvstore=N
                  for_training=False, inputs_need_grad=False)
 
     mod.init_params(initializer=mx.init.Xavier(magnitude=2.))
-    mod.init_optimizer(kvstore=kvstore,
-                       optimizer='ccsgd',
-                       optimizer_params={
-                           'learning_rate': 0.0001,
-                           'momentum': 0.0,
-                           'wd': 0.0
-                       })
+    if is_train:
+        mod.init_optimizer(kvstore=kvstore,
+                           optimizer='ccsgd',
+                           optimizer_params={
+                               'learning_rate': 0.0001,
+                               'momentum': 0.0,
+                               'wd': 0.0
+                           })
     return mod
 
 
-def benchmark(mod, dry_run=10, iterations=10):
+def train(mod, batch, iterations):
+    for i in range(iterations):
+        mod.forward(batch, is_train=True)
+        mod.backward()
+        for output in mod.get_outputs(merge_multi_context=False)[0]:
+            output.wait_to_read()
+        mod.update()
+
+
+def inference(mod, batch, iterations):
+    for i in range(iterations):
+        mod.forward(batch, is_train=False)
+        for output in mod.get_outputs(merge_multi_context=False)[0]:
+            output.wait_to_read()
+
+
+def benchmark(mod, dry_run=10, iterations=10, is_train=True):
     if len(mod._context) == 1:
         ctx = mod._context[0]
     else:
@@ -58,31 +75,30 @@ def benchmark(mod, dry_run=10, iterations=10):
     label = [mx.nd.array(np.random.randint(1, 100, size=shape), ctx=ctx)
              for _, shape in mod.label_shapes]
     batch = mx.io.DataBatch(data, label)
-
     # dry run
-    for i in range(dry_run):
-        mod.forward(batch, is_train=True)
-        mod.backward()
-        for output in mod.get_outputs(merge_multi_context=False)[0]:
-            output.wait_to_read()
-        mod.update()
+    if is_train:
+        train(mod, batch, dry_run)
+    else:
+        inference(mod, batch, dry_run)
 
     tic = time.time()
 
     # real run
-    for i in range(iterations):
-        mod.forward(batch, is_train=True)
-        mod.backward()
-        for output in mod.get_outputs(merge_multi_context=False)[0]:
-            output.wait_to_read()
-        mod.update()
+    if is_train:
+        train(mod, batch, iterations)
+    else:
+        inference(mod, batch, iterations)
 
-    return format(mod._exec_group.batch_size / ((time.time() - tic) / iterations), '.2f')
+    return format(mod._exec_group.batch_size * iterations / (time.time() - tic), '.1f')
 
 
 syms = {
     'mnist': (mx.sym.load('mnist.json'), [
         ('data', (64, 1, 28, 28))], [('softmax_label', (64,))]),
+    'resnet-50': (mx.sym.load('resnet-50.json'), [
+        ('data', (64, 3, 224, 224))], [('softmax_label', (64,))]),
+    'ssd-vgg16': (mx.sym.load('ssd-vgg16.json'), [
+        ('data', (64, 3, 300, 300))], [('label', (64,))]),
     'sockeye': (mx.sym.load('sockeye.json'), [('source', (64, 60)), ('target', (
         64, 60))], [('target_label', (64, 60))])
 }
@@ -96,6 +112,10 @@ if __name__ == '__main__':
                         help='The gpus to run on. Multiple gpus should be separated by ,')
     parser.add_argument('--batch-size', type=int, default=None,
                         help='Optionally override the default batch size')
+    parser.add_argument('--iterations', type=int, default=10,
+                        help='iterations')
+    parser.add_argument('--is-train', default=False,
+                        type=lambda x: (str(x).lower() == 'true'))
     parser.add_argument('--kv-store', type=str, default='device',
                         choices=['device', 'local_update_cpu',
                                  'local_allreduce_cpu'],
@@ -107,8 +127,11 @@ if __name__ == '__main__':
     else:
         net = importlib.import_module(args.network)
         sym, provide_data, provide_label = net.get_symbol()
-    # ctx = [mx.gpu(int(i)) for i in args.gpus.strip().split(',')]
     ctx = [mx.cpu()]
-    mod = get_module(ctx, sym, provide_data, provide_label,
-                     kvstore=args.kv_store, batch_size=args.batch_size)
-    print(benchmark(mod), " samples/sec")
+    batches = [args.batch_size] if args.batch_size!=None else [1,2,4,8,16,32,64,128,256]
+    for batch in batches:
+        mod = get_module(ctx, sym, provide_data, provide_label,
+                         kvstore=args.kv_store, batch_size=batch, is_train=args.is_train)
+        score = benchmark(mod, iterations=args.iterations,
+                        is_train=args.is_train)
+        print("network:"+args.network+", type:"+("training" if args.is_train else "inference")+", batch_size:"+str(mod._exec_group.batch_size)+", score:"+str(score))
