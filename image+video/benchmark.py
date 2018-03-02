@@ -97,10 +97,10 @@ syms = {
         ('data', (64, 1, 28, 28))], [('softmax_label', (64,))]),
     'resnet-50': (mx.sym.load('resnet-50.json'), [
         ('data', (64, 3, 224, 224))], [('softmax_label', (64,))]),
-    'vgg-reduced': (mx.sym.load('vgg-reduced.json'), [
-        ('data', (64, 3, 300, 300))], [('softmax_label', (64,))]),
+    'vgg16-reduced': (mx.sym.load('vgg16-reduced.json'), [
+        ('data', (16, 3, 300, 300))], [('softmax_label', (16,))]),
     'ssd-vgg16': (mx.sym.load('ssd-vgg16.json'), [
-        ('data', (64, 3, 300, 300))], [('label', (64, 21, 6))]),
+        ('data', (16, 3, 300, 300))], [('label', (16, 21, 6))]),
     'sockeye': (mx.sym.load('sockeye.json'), [('source', (64, 60)), ('target', (
         64, 60))], [('target_label', (64, 60))])
 }
