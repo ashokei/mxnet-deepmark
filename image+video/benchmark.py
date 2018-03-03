@@ -95,7 +95,17 @@ def benchmark(mod, dry_run=10, iterations=10, is_train=True):
 syms = {
     'mnist': (mx.sym.load('mnist.json'), [
         ('data', (64, 1, 28, 28))], [('softmax_label', (64,))]),
+    'alexnet': (mx.sym.load('alexnet.json'), [
+        ('data', (64, 3, 224, 224))], [('softmax_label', (64,))]),
+    'inception-bn': (mx.sym.load('inception-bn.json'), [
+        ('data', (64, 3, 224, 224))], [('softmax_label', (64,))]),
+    'inception-v3': (mx.sym.load('inception-v3.json'), [
+        ('data', (64, 3, 299, 299))], [('softmax_label', (64,))]),
     'resnet-50': (mx.sym.load('resnet-50.json'), [
+        ('data', (64, 3, 224, 224))], [('softmax_label', (64,))]),
+    'resnet-152': (mx.sym.load('resnet-152.json'), [
+        ('data', (64, 3, 224, 224))], [('softmax_label', (64,))]),
+    'vgg-16': (mx.sym.load('vgg-16.json'), [
         ('data', (64, 3, 224, 224))], [('softmax_label', (64,))]),
     'vgg16-reduced': (mx.sym.load('vgg16-reduced.json'), [
         ('data', (16, 3, 300, 300))], [('softmax_label', (16,))]),
