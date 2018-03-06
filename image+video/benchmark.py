@@ -111,6 +111,8 @@ syms = {
         ('data', (16, 3, 300, 300))], [('softmax_label', (16,))]),
     'ssd-vgg16': (mx.sym.load('ssd-vgg16.json'), [
         ('data', (16, 3, 300, 300))], [('label', (16, 21, 6))]),
+    'ssd_vgg16_reduced_300-symbol': (mx.sym.load('ssd_vgg16_reduced_300-symbol.json'), [
+        ('data', (32, 3, 300, 300))], [('label', (32, 58, 6))]),
     'sockeye': (mx.sym.load('sockeye.json'), [('source', (64, 60)), ('target', (
         64, 60))], [('target_label', (64, 60))])
 }
