@@ -110,7 +110,7 @@ syms = {
     'vgg16-reduced': (mx.sym.load('vgg16-reduced.json'), [
         ('data', (16, 3, 300, 300))], [('softmax_label', (16,))]),
     'ssd-vgg16': (mx.sym.load('ssd-vgg16.json'), [
-        ('data', (16, 3, 300, 300))], [('label', (16, 21, 6))]),
+        ('data', (16, 3, 300, 300))], [('label', (16, 58, 6))]),
     'ssd_vgg16_reduced_300-symbol': (mx.sym.load('ssd_vgg16_reduced_300-symbol.json'), [
         ('data', (32, 3, 300, 300))], [('label', (32, 58, 6))]),
     'sockeye': (mx.sym.load('sockeye.json'), [('source', (64, 60)), ('target', (
@@ -124,7 +124,7 @@ if __name__ == '__main__':
                         help='Network to run. Should be one of alexnet|vgg|resnet|inceptionv3|c3d')
     parser.add_argument('--gpus', type=str, default=None,
                         help='The gpus to run on. Multiple gpus should be separated by ,')
-    parser.add_argument('--batch-size', type=int, default=None,
+    parser.add_argument('--batch-size', type=str, default=None,
                         help='Optionally override the default batch size')
     parser.add_argument('--iterations', type=int, default=10,
                         help='iterations')
@@ -144,7 +144,7 @@ if __name__ == '__main__':
     ctx = [mx.cpu()]
     if args.gpus is not None:
         ctx = [mx.gpu(int(i)) for i in args.gpus.strip().split(',')]
-    batches = [args.batch_size] if args.batch_size != None else [
+    batches = [int(i) for i in args.batch_size.strip().split(',')] if args.batch_size != None else [
         1, 2, 4, 8, 16, 32, 64, 128, 256]
     for batch in batches:
         mod = get_module(ctx, sym, provide_data, provide_label,
