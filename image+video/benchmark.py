@@ -128,6 +128,8 @@ if __name__ == '__main__':
                         help='Optionally override the default batch size')
     parser.add_argument('--iterations', type=int, default=10,
                         help='iterations')
+    parser.add_argument('--dry-run', type=int, default=10,
+                        help='dry run iterations before benchmarking')
     parser.add_argument('--is-train', default=False,
                         type=lambda x: (str(x).lower() == 'true'))
     parser.add_argument('--kv-store', type=str, default='device',
@@ -149,7 +151,7 @@ if __name__ == '__main__':
     for batch in batches:
         mod = get_module(ctx, sym, provide_data, provide_label,
                          kvstore=args.kv_store, batch_size=batch, is_train=args.is_train)
-        score = benchmark(mod, iterations=args.iterations,
+        score = benchmark(mod, dry_run=args.dry_run, iterations=args.iterations,
                           is_train=args.is_train)
         print("network:" + args.network + ", type:" + ("training" if args.is_train else "inference") +
               ", batch_size:" + str(mod._exec_group.batch_size) + ", score:" + str(score))
