@@ -17,7 +17,7 @@ cd image+video/
 python benchmark.py --network resnet-50
 python benchmark.py --network resnet-50 --is-train true
 
-# resnet-50 inference test with different BS
+# resnet-50 inference/training tests with different BS
 python benchmark.py --network resnet-50 --batch-size 16,32,64,128
 python benchmark.py --network resnet-50 --batch-size 16,32,64,128 --is-train true
 
