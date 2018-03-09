@@ -8,7 +8,7 @@ This forked repo adds CPU specific changes, and new models for testing.
 ---
 ## Quickstart
 
-```python
+```
 cd image+video/
 
 # resnet-50 inference/training with default BS=64
