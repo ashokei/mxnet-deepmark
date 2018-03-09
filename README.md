@@ -8,6 +8,8 @@ This forked repo adds CPU specific changes, and new models for testing.
 ---
 ## Quickstart
 
+No dataset download is needed, all tests are done using dummy/random generated data. Please refer to benchmark.py for supported models.
+
 ```
 cd image+video/
 
