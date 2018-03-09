@@ -109,6 +109,9 @@ syms = {
         ('data', (64, 3, 224, 224))], [('softmax_label', (64,))]),
     'vgg16-reduced': (mx.sym.load('vgg16-reduced.json'), [
         ('data', (16, 3, 300, 300))], [('softmax_label', (16,))]),
+    'lstm_bucketing-old': (mx.sym.load('lstm_bucketing.json'), [('data', (256, 32)), ('l0_init_c', (256, 200)), ('l1_init_c', (256, 200)), ('l0_init_h', (256, 200)), ('l1_init_h', (
+        256, 200))], [('softmax_label', (256, 32))]),
+    'lstm_bucketing': (mx.sym.load('lstm_bucketing.json'), [('data', (32, 60))], [('softmax_label', (32, 60))]),
     'ssd-vgg16': (mx.sym.load('ssd-vgg16.json'), [
         ('data', (16, 3, 300, 300))], [('label', (16, 58, 6))]),
     'ssd_vgg16_reduced_300-symbol': (mx.sym.load('ssd_vgg16_reduced_300-symbol.json'), [
@@ -146,8 +149,8 @@ if __name__ == '__main__':
     ctx = [mx.cpu()]
     if args.gpus is not None:
         ctx = [mx.gpu(int(i)) for i in args.gpus.strip().split(',')]
-    batches = [int(i) for i in args.batch_size.strip().split(',')] if args.batch_size != None else [
-        1, 2, 4, 8, 16, 32, 64, 128, 256]
+    batches = [int(i) for i in args.batch_size.strip().split(
+        ',')] if args.batch_size != None else [None]
     for batch in batches:
         mod = get_module(ctx, sym, provide_data, provide_label,
                          kvstore=args.kv_store, batch_size=batch, is_train=args.is_train)
