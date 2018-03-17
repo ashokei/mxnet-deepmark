@@ -8,12 +8,14 @@ import importlib
 import mxnet as mx
 import numpy as np
 import time
+from os.path import dirname, abspath, join
 
 try:
     from utils.memonger import search_plan
 except:
     import sys
-    sys.path.append("../utils/")
+    maindir = dirname(dirname(abspath(__file__)))
+    sys.path.append(join(maindir, "utils"))
     from memonger import search_plan
 
 
@@ -93,30 +95,32 @@ def benchmark(mod, dry_run=10, iterations=10, is_train=True):
 
 
 syms = {
-    'mnist': (mx.sym.load('mnist.json'), [
-        ('data', (64, 1, 28, 28))], [('softmax_label', (64,))]),
-    'alexnet': (mx.sym.load('alexnet.json'), [
-        ('data', (64, 3, 224, 224))], [('softmax_label', (64,))]),
-    'inception-bn': (mx.sym.load('inception-bn.json'), [
-        ('data', (64, 3, 224, 224))], [('softmax_label', (64,))]),
-    'inception-v3': (mx.sym.load('inception-v3.json'), [
-        ('data', (64, 3, 299, 299))], [('softmax_label', (64,))]),
-    'resnet-50': (mx.sym.load('resnet-50.json'), [
-        ('data', (64, 3, 224, 224))], [('softmax_label', (64,))]),
-    'resnet-152': (mx.sym.load('resnet-152.json'), [
-        ('data', (64, 3, 224, 224))], [('softmax_label', (64,))]),
-    'vgg-16': (mx.sym.load('vgg-16.json'), [
-        ('data', (64, 3, 224, 224))], [('softmax_label', (64,))]),
-    'vgg16-reduced': (mx.sym.load('vgg16-reduced.json'), [
+    'mnist': ('mnist.json', [
+        ('data', (128, 1, 28, 28))], [('softmax_label', (128,))]),
+    'alexnet': ('alexnet.json', [
+        ('data', (128, 3, 224, 224))], [('softmax_label', (128,))]),
+    'inception-bn': ('inception-bn.json', [
+        ('data', (128, 3, 224, 224))], [('softmax_label', (128,))]),
+    'inception-v3': ('inception-v3.json', [
+        ('data', (128, 3, 299, 299))], [('softmax_label', (128,))]),
+    'resnet-20': ('resnet-20.json', [
+        ('data', (128, 3, 28, 28))], [('softmax_label', (128,))]),
+    'resnet-50': ('resnet-50.json', [
+        ('data', (128, 3, 224, 224))], [('softmax_label', (128,))]),
+    'resnet-152': ('resnet-152.json', [
+        ('data', (128, 3, 224, 224))], [('softmax_label', (128,))]),
+    'vgg-16': ('vgg-16.json', [
+        ('data', (128, 3, 224, 224))], [('softmax_label', (128,))]),
+    'vgg16-reduced': ('vgg16-reduced.json', [
         ('data', (16, 3, 300, 300))], [('softmax_label', (16,))]),
-    'lstm_bucketing-old': (mx.sym.load('lstm_bucketing.json'), [('data', (256, 32)), ('l0_init_c', (256, 200)), ('l1_init_c', (256, 200)), ('l0_init_h', (256, 200)), ('l1_init_h', (
+    'lstm_bucketing-old': ('lstm_bucketing.json', [('data', (256, 32)), ('l0_init_c', (256, 200)), ('l1_init_c', (256, 200)), ('l0_init_h', (256, 200)), ('l1_init_h', (
         256, 200))], [('softmax_label', (256, 32))]),
-    'lstm_bucketing': (mx.sym.load('lstm_bucketing.json'), [('data', (32, 60))], [('softmax_label', (32, 60))]),
-    'ssd-vgg16': (mx.sym.load('ssd-vgg16.json'), [
+    'lstm_bucketing': ('lstm_bucketing.json', [('data', (32, 60))], [('softmax_label', (32, 60))]),
+    'ssd-vgg16': ('ssd-vgg16.json', [
         ('data', (16, 3, 300, 300))], [('label', (16, 58, 6))]),
-    'ssd_vgg16_reduced_300-symbol': (mx.sym.load('ssd_vgg16_reduced_300-symbol.json'), [
+    'ssd_vgg16_reduced_300-symbol': ('ssd_vgg16_reduced_300-symbol.json', [
         ('data', (32, 3, 300, 300))], [('label', (32, 58, 6))]),
-    'sockeye': (mx.sym.load('sockeye.json'), [('source', (64, 60)), ('target', (
+    'sockeye': ('sockeye.json', [('source', (64, 60)), ('target', (
         64, 60))], [('target_label', (64, 60))])
 }
 
@@ -141,20 +145,23 @@ if __name__ == '__main__':
                         help='How data are aggregated over multi-GPUs')
     args = parser.parse_args()
 
-    if args.network in syms:
-        sym, provide_data, provide_label = syms[args.network]
-    else:
-        net = importlib.import_module(args.network)
-        sym, provide_data, provide_label = net.get_symbol()
     ctx = [mx.cpu()]
     if args.gpus is not None:
         ctx = [mx.gpu(int(i)) for i in args.gpus.strip().split(',')]
     batches = [int(i) for i in args.batch_size.strip().split(
         ',')] if args.batch_size != None else [None]
-    for batch in batches:
-        mod = get_module(ctx, sym, provide_data, provide_label,
-                         kvstore=args.kv_store, batch_size=batch, is_train=args.is_train)
-        score = benchmark(mod, dry_run=args.dry_run, iterations=args.iterations,
-                          is_train=args.is_train)
-        print("network:" + args.network + ", type:" + ("training" if args.is_train else "inference") +
-              ", batch_size:" + str(mod._exec_group.batch_size) + ", score:" + str(score))
+    models = [i for i in args.network.strip().split(',')]
+    for model in models:
+        for batch in batches:
+            if model in syms:
+                symfile, provide_data, provide_label = syms[model]
+                sym = mx.sym.load(join(dirname(abspath(__file__)), symfile))
+            else:
+                net = importlib.import_module(model)
+                sym, provide_data, provide_label = net.get_symbol()
+            mod = get_module(ctx, sym, provide_data, provide_label,
+                             kvstore=args.kv_store, batch_size=batch, is_train=args.is_train)
+            score = benchmark(mod, dry_run=args.dry_run, iterations=args.iterations,
+                              is_train=args.is_train)
+            print("network:" + model + ", type:" + ("training" if args.is_train else "inference") +
+                  ", batch_size:" + str(mod._exec_group.batch_size) + ", score:" + str(score))
