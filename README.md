@@ -11,14 +11,14 @@ This forked repo adds CPU specific changes, and new models for testing.
 No dataset download is needed, all tests are done using dummy/random generated data. Please refer to benchmark.py for supported models.
 
 ```
-cd image+video/
 
-# resnet-50 inference/training with default BS=64
-python benchmark.py --network resnet-50
-python benchmark.py --network resnet-50 --is-train true
+# inference benchmark for mnist, resnet-20(cifar10), and resnet-50
+./bmark.sh --network mnist,resnet-20,resnet-50
 
-# resnet-50 inference/training tests with different BS
-python benchmark.py --network resnet-50 --batch-size 16,32,64,128
-python benchmark.py --network resnet-50 --batch-size 16,32,64,128 --is-train true
+# training benchmark for mnist, resnet-20(cifar10), and resnet-50
+./bmark.sh --network mnist,resnet-20,resnet-50 --is-train true
+
+# inference benchmark for resnet-50 with different batch sizes
+./bmark.sh --network resnet-50 --batch-size 1,8,64,128
 
 ```
