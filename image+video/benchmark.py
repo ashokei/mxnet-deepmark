@@ -50,24 +50,7 @@ def get_module(ctx, sym, provide_data, provide_label, batch_size=None, kvstore=N
                            })
     return mod
 
-
-def train(mod, batch, iterations):
-    for i in range(iterations):
-        mod.forward(batch, is_train=True)
-        mod.backward()
-        for output in mod.get_outputs(merge_multi_context=False)[0]:
-            output.wait_to_read()
-        mod.update()
-
-
-def inference(mod, batch, iterations):
-    for i in range(iterations):
-        mod.forward(batch, is_train=False)
-        for output in mod.get_outputs(merge_multi_context=False)[0]:
-            output.wait_to_read()
-
-
-def benchmark(mod, dry_run=10, iterations=10, is_train=True):
+def get_batch(mod):
     if len(mod._context) == 1:
         ctx = mod._context[0]
     else:
@@ -77,19 +60,38 @@ def benchmark(mod, dry_run=10, iterations=10, is_train=True):
     label = [mx.nd.array(np.random.randint(1, 100, size=shape), ctx=ctx)
              for _, shape in mod.label_shapes]
     batch = mx.io.DataBatch(data, label)
+    return batch
+
+def train(mod, iterations):
+    for i in range(iterations):
+        mod.forward(get_batch(mod), is_train=True)
+        mod.backward()
+        for output in mod.get_outputs(merge_multi_context=False)[0]:
+            output.wait_to_read()
+        mod.update()
+
+
+def inference(mod, iterations):
+    for i in range(iterations):
+        mod.forward(get_batch(mod), is_train=False)
+        for output in mod.get_outputs(merge_multi_context=False)[0]:
+            output.wait_to_read()
+
+
+def benchmark(mod, dry_run=10, iterations=10, is_train=True):
     # dry run
     if is_train:
-        train(mod, batch, dry_run)
+        train(mod, dry_run)
     else:
-        inference(mod, batch, dry_run)
+        inference(mod, dry_run)
 
     tic = time.time()
 
     # real run
     if is_train:
-        train(mod, batch, iterations)
+        train(mod, iterations)
     else:
-        inference(mod, batch, iterations)
+        inference(mod, iterations)
 
     return format(mod._exec_group.batch_size * iterations / (time.time() - tic), '.1f')
 
