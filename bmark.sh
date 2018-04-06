@@ -1,3 +1,2 @@
 #!/usr/bin/env bash
-
-python ./image+video/benchmark.py "$@" 2>/dev/null
+python $(dirname "$0")/image+video/benchmark.py "$@" 2>/dev/null
