@@ -120,6 +120,8 @@ syms = {
         ('data', (16, 3, 300, 300))], [('label', (16, 58, 6))]),
     'ssd_vgg16_reduced_300-symbol': ('ssd_vgg16_reduced_300-symbol.json', [
         ('data', (32, 3, 300, 300))], [('label', (32, 58, 6))]),
+    'ssd_resnet50_512-symbol': ('ssd_resnet50_512-symbol.json', [
+        ('data', (32, 3, 300, 300))], [('label', (32, 58, 6))]),
     'sockeye': ('sockeye.json', [('source', (64, 60)), ('target', (
         64, 60))], [('target_label', (64, 60))])
 }
