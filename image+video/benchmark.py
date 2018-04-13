@@ -18,9 +18,29 @@ except:
     sys.path.append(join(maindir, "utils"))
     from memonger import search_plan
 
+def get_arg_aux(ctx, sym, data_shape):
+    argn = sym.list_arguments()[1:-1]
+    auxn = sym.list_auxiliary_states()
+    shapes = sym.infer_shape(data=data_shape)
+
+    def get_vals(args, shapes, ctx):
+        return {x: mx.nd.ones(y, ctx[0]) for x, y in zip(args, shapes)}
+    return get_vals(argn, shapes[0][1:-1], ctx), get_vals(auxn, shapes[2], ctx)
+
+def get_argaux_file(param_file):
+    save_dict = mx.nd.load(param_file)
+    arg_params = {}
+    aux_params = {}
+    for k, v in save_dict.items():
+        tp, name = k.split(':', 1)
+        if tp == 'arg':
+            arg_params[name] = v
+        if tp == 'aux':
+            aux_params[name] = v
+    return arg_params, aux_params
 
 def get_module(ctx, sym, provide_data, provide_label, batch_size=None, kvstore=None,
-               is_train=True, use_memonger=False):
+               is_train=True, use_memonger=False, arg_params=None, aux_params=None):
     if use_memonger:
         sym = search_plan(sym, data=data_shapes)
     mod = mx.mod.Module(symbol=sym,
@@ -38,8 +58,10 @@ def get_module(ctx, sym, provide_data, provide_label, batch_size=None, kvstore=N
     else:
         mod.bind(data_shapes=provide_data, label_shapes=provide_label,
                  for_training=False, inputs_need_grad=False)
-
-    mod.init_params(initializer=mx.init.Xavier(magnitude=2.))
+    if arg_params is None:
+        mod.init_params(initializer=mx.init.Xavier(magnitude=2.))
+    else:
+        mod.set_params(arg_params=arg_params, aux_params=aux_params) 
     if is_train:
         mod.init_optimizer(kvstore=kvstore,
                            optimizer='ccsgd',
@@ -101,6 +123,8 @@ syms = {
         ('data', (128, 3, 224, 224))], [('softmax_label', (128,))]),
     'inception-bn': ('inception-bn.json', [
         ('data', (128, 3, 224, 224))], [('softmax_label', (128,))]),
+    'imagenet1k-inception-bn-quantized-gpu': ('imagenet1k-inception-bn-quantized-gpu.json', [
+        ('data', (32, 3, 224, 224))], [('softmax_label', (32,))]),
     'inception-v3': ('inception-v3.json', [
         ('data', (128, 3, 299, 299))], [('softmax_label', (128,))]),
     'resnet-20': ('resnet-20.json', [
@@ -108,6 +132,8 @@ syms = {
     'resnet-50': ('resnet-50.json', [
         ('data', (128, 3, 224, 224))], [('softmax_label', (128,))]),
     'resnet-152': ('resnet-152.json', [
+        ('data', (128, 3, 224, 224))], [('softmax_label', (128,))]),
+    'imagenet1k-resnet-152-quantized-gpu': ('imagenet1k-resnet-152-quantized-gpu.json', [
         ('data', (128, 3, 224, 224))], [('softmax_label', (128,))]),
     'vgg-16': ('vgg-16.json', [
         ('data', (128, 3, 224, 224))], [('softmax_label', (128,))]),
@@ -154,15 +180,19 @@ if __name__ == '__main__':
         ',')] if args.batch_size != None else [None]
     models = [i for i in args.network.strip().split(',')]
     for model in models:
+        arg_params = aux_params = None
         for batch in batches:
             if model in syms:
                 symfile, provide_data, provide_label = syms[model]
                 sym = mx.sym.load(join(dirname(abspath(__file__)), symfile))
+                paramfile = join(dirname(abspath(__file__)), model+".params")
+                if os.path.isfile(paramfile):
+                    arg_params, aux_params = get_argaux_file(paramfile)
             else:
                 net = importlib.import_module(model)
                 sym, provide_data, provide_label = net.get_symbol()
             mod = get_module(ctx, sym, provide_data, provide_label,
-                             kvstore=args.kv_store, batch_size=batch, is_train=args.is_train)
+                             kvstore=args.kv_store, batch_size=batch, is_train=args.is_train, arg_params=arg_params, aux_params=aux_params)
             score = benchmark(mod, dry_run=args.dry_run, iterations=args.iterations,
                               is_train=args.is_train)
             print("network:" + model + ", type:" + ("training" if args.is_train else "inference") +
