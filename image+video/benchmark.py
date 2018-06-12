@@ -6,6 +6,8 @@ os.environ["MXNET_CUDNN_AUTOTUNE_DEFAULT"] = "1"
 import argparse
 import importlib
 import mxnet as mx
+from sockeye.layers import *
+from sockeye.transformer import *
 import numpy as np
 import time
 from os.path import dirname, abspath, join
@@ -148,8 +150,10 @@ syms = {
         ('data', (32, 3, 300, 300))], [('label', (32, 58, 6))]),
     'ssd_resnet50_512-symbol': ('ssd_resnet50_512-symbol.json', [
         ('data', (32, 3, 300, 300))], [('label', (32, 58, 6))]),
-    'sockeye': ('sockeye.json', [('source', (64, 60)), ('target', (
-        64, 60))], [('target_label', (64, 60))])
+    'sockeye-gnmt': ('sockeye-gnmt-nobucket.json', [('source', (64, 100, 1)), ('target', (
+        64, 100))], [('target_label', (64, 100))]),
+    'sockeye-transformer': ('sockeye-transformer-nobucket.json', [('source', (64, 100, 1)), ('target', (
+        64, 100))], [('target_label', (64, 100))])
 }
 
 if __name__ == '__main__':
